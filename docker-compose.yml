@@ -1,0 +1,10 @@
+services:
+  app:
+    image: ustwo/browser-sync
+    command: start --server --port 8080 --files "*.html, css/*.css, js/*.js, *.json" --no-open true
+    environment:
+      - DEBUG=True
+    volumes:
+    - ./:/source
+    ports:
+      - "8080:8080"
