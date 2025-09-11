@@ -1,27 +1,47 @@
-# Build
-FROM node:17.8.0-alpine AS builder
+# Dart stage
+FROM bufbuild/buf AS buf
+FROM dart:stable AS builder
+
+# Add your scss files
+COPY . /app
+
+# Include Protocol Buffer binary
+COPY --from=buf /usr/local/bin/buf /usr/local/bin/
+
+WORKDIR /dart-sass
+RUN git clone https://github.com/sass/dart-sass.git . && \
+  dart pub get && \
+  dart run grinder protobuf
+# This is where you run sass.dart on your scss file(s)
+RUN dart ./bin/sass.dart /app/scss/styles.scss /app/css/styles.css
+
+## Clean
+FROM nginx:alpine AS cleaner
+
+WORKDIR /app
+
+RUN rm -rf ./*
+
+COPY --from=builder /app/css ./css/
+COPY --from=builder /app/js ./js/
+COPY --from=builder /app/assets ./assets/
+COPY --from=builder /app/pages ./pages/
+COPY --from=builder /app/favicon.ico ./
+COPY --from=builder /app/index.html ./
+COPY --from=builder /app/qa-checklist.md ./
+
+# Dev
+FROM ustwo/browser-sync AS dev
+
+COPY --from=cleaner /app /source
+
+## Release/production
+FROM nginxinc/nginx-unprivileged:alpine3.22-perl
+
+LABEL maintainer=courseproduction@bcit.ca
+LABEL org.opencontainers.image.source="https://github.com/bcit-ltc/course-production-site"
+LABEL org.opencontainers.image.description="course-production-site is the public landing page to course production services and resources."
 
 WORKDIR /usr/share/nginx/html
 
-RUN npm install -g sass
-
-COPY . ./
-
-RUN sass --style=compressed scss/styles.scss css/styles.css
-
-# Release
-FROM nginxinc/nginx-unprivileged:1.24
-
-LABEL maintainer courseproduction@bcit.ca
-
-WORKDIR /usr/share/nginx/html
-
-# ./assets copied via init container
-#
-COPY --from=builder /usr/share/nginx/html/css ./css
-COPY --from=builder /usr/share/nginx/html/js ./js
-COPY --from=builder /usr/share/nginx/html/pages ./pages
-COPY --from=builder /usr/share/nginx/html/favicon.ico ./
-COPY --from=builder /usr/share/nginx/html/index.html ./
-COPY --from=builder /usr/share/nginx/html/LICENSE ./
-COPY --from=builder /usr/share/nginx/html/qa-checklist.md ./
+COPY --from=cleaner /app ./

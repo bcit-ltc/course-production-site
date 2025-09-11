@@ -1,10 +1,16 @@
+name: course-production-site
+
 services:
   app:
-    image: ustwo/browser-sync
+    # image: ustwo/browser-sync
+    image: course-production-site
+    build:
+      target: dev
     command: start --server --port 8080 --files "*.html, css/*.css, js/*.js, *.json" --no-open true
-    environment:
-      - DEBUG=True
     volumes:
-    - ./:/source
+    - ./:/app
     ports:
       - "8080:8080"
+    environment:
+      - DEBUG=true
+      - CI=false
