@@ -1,8 +1,7 @@
 <!-- SPDX-License-Identifier: MPL-2.0 -->
+# Course Production Site
 
-# course-production-site
-
-Public landing page to course production services and resources.
+Public landing page for the BCIT Learning and Teaching Centre's Course Production services and resources.
 
 ## Develop using Codespaces
 
