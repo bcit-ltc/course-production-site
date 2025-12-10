@@ -21,6 +21,33 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "$_this")" && pwd -P)"
 # Check dependencies
 need helm
 
+# Check whether ./app-chart already exists and prompt the user
+if [[ -d "app-chart" ]]; then
+  log "⚠️ Detected existing ./app-chart directory."
+
+  # If AUTO_ACCEPT is set (CI/non-interactive), the user can force overwrite:
+  if [[ "${APP_CHART_OVERWRITE:-}" == "1" ]]; then
+    log "APP_CHART_OVERWRITE=1 → proceeding with overwrite (no prompt)."
+  else
+    # Interactive prompt
+    echo -n "Use existing chart directory (U) or overwrite (O)? [u/o]: "
+    read -r answer
+
+    case "$answer" in
+      u|U|use|Use)
+        log "➡️  Using existing ./app-chart; skipping download."
+        exit 0
+        ;;
+      o|O|overwrite|Overwrite)
+        log "🗑️ Overwriting existing ./app-chart..."
+        ;;
+      *)
+        die "Unrecognized option. Aborting to avoid accidental overwrite."
+        ;;
+    esac
+  fi
+fi
+
 log "🚀 Retrieving app chart into ./app-chart"
 
 # Determine chart reference and optional version
@@ -91,7 +118,9 @@ tdir="$(mktemp -d -p . .chart.XXXXXX)"
   mv -- "$CHART_DIR" "$stage"
 
   # Optional: resolve dependencies & lint (non-fatal)
-  # ( cd "$stage" && helm dependency build >/dev/null 2>&1 || true )
+  # Ensure required repos exist for dependency resolution, then vendor deps
+  helm repo add bcit-ltc https://bcit-ltc.github.io/helm-charts >/dev/null 2>&1 || true
+  ( cd "$stage" && helm dependency build )
   # ( cd "$stage" && helm lint || true )
 
   rm -rf -- "app-chart"

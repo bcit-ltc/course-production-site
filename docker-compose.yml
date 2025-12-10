@@ -1,16 +1,29 @@
-name: course-production-site
+name: ${APP_NAME:-course-production-site}
 
 services:
   app:
-    # image: ustwo/browser-sync
-    image: course-production-site
     build:
+      context: .
       target: dev
+      platforms:
+        - linux/amd64
+        - linux/arm64
     command: start --server --port 8080 --files "*.html, css/*.css, js/*.js, *.json" --no-open true
-    volumes:
-    - ./:/app
-    ports:
-      - "8080:8080"
+
     environment:
       - DEBUG=true
       - CI=false
+
+    # https://docs.docker.com/compose/how-tos/file-watch/
+    # develop:
+    #   watch:
+    #     - path: src/
+    #       action: sync
+    #       target: /usr/share/nginx/html
+
+    volumes:
+      - ./conf.d/default.conf:/etc/nginx/conf.d/default.conf
+      - ./:/app
+
+    ports:
+      - "8080:8080"
